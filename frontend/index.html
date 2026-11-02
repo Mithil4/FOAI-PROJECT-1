@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartPack AI - Smart Package Management System</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo-area">
+                <span class="logo-icon">📦</span>
+                <div>
+                    <h1 class="logo-title">SmartPack AI</h1>
+                    <p class="logo-subtitle">FOAI Package Management System (CSP & Backtracking Search)</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span id="backend-status" class="status-pill status-connecting">Connecting to Backend...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Stats Row -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Lockers</div>
+                <div id="stat-total" class="stat-value">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Available</div>
+                <div id="stat-avail" class="stat-value text-green">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Occupied</div>
+                <div id="stat-occupied" class="stat-value text-red">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cold Storage</div>
+                <div id="stat-cold" class="stat-value text-blue">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Queue</div>
+                <div id="stat-queue" class="stat-value text-amber">--</div>
+            </div>
+        </section>
+
+        <!-- Main Workspace: Split Grid -->
+        <div class="workspace-grid">
+            <!-- Left: Locker Matrix View -->
+            <section class="panel locker-panel">
+                <div class="panel-header">
+                    <h2>🏢 Physical Compartment Matrix</h2>
+                    <div class="panel-controls">
+                        <button id="btn-refresh" class="btn btn-sm btn-outline">🔄 Refresh</button>
+                        <button id="btn-reset-facility" class="btn btn-sm btn-danger-sm">🗑️ Reset Facility</button>
+                    </div>
+                </div>
+                <div id="locker-matrix" class="locker-matrix">
+                    <!-- Dynamic Locker Cards injected by app.js -->
+                </div>
+            </section>
+
+            <!-- Right: Actions & Operations -->
+            <section class="panel actions-panel">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="tab-allocate">🚀 Intake & CSP Solve</button>
+                    <button class="tab-btn" data-tab="tab-retrieve">📤 Retrieve Package</button>
+                    <button class="tab-btn" data-tab="tab-benchmark">📊 FOAI Benchmarks</button>
+                </div>
+
+                <!-- Tab 1: Intake & Allocation -->
+                <div id="tab-allocate" class="tab-content active">
+                    <!-- CSP Execution Control -->
+                    <div class="card solver-card">
+                        <h3>🧠 Run CSP Allocation Solver</h3>
+                        <p class="card-desc">Automatically assigns pending packages to compartments satisfying physical and priority constraints.</p>
+                        
+                        <div class="form-group">
+                            <label for="algo-select">Select Search Algorithm:</label>
+                            <select id="algo-select" class="form-input">
+                                <option value="fc_mrv_lcv" selected>Backtracking + FC + MRV + LCV (Optimized - Recommended)</option>
+                                <option value="fc">Backtracking + Forward Checking (Domain Pruning)</option>
+                                <option value="pure">Pure Backtracking (Baseline without Heuristics)</option>
+                            </select>
+                        </div>
+
+                        <div class="btn-group">
+                            <button id="btn-allocate" class="btn btn-primary">⚡ Execute Allocation</button>
+                            <button id="btn-sample-queue" class="btn btn-outline">📥 Load Sample Queue</button>
+                            <button id="btn-clear-queue" class="btn btn-outline">🗑️ Clear Queue</button>
+                        </div>
+                        <div id="solver-alert" class="alert hidden"></div>
+
+                        <!-- Solver Diagnostic Telemetry -->
+                        <div id="solver-metrics-box" class="metrics-box hidden">
+                            <h4>🔍 Solver Diagnostics</h4>
+                            <div class="metrics-row">
+                                <div><b>Algorithm:</b> <span id="metric-algo">-</span></div>
+                                <div><b>Nodes Visited:</b> <span id="metric-nodes">-</span></div>
+                                <div><b>Backtracks:</b> <span id="metric-backtracks">-</span></div>
+                                <div><b>Latency:</b> <span id="metric-latency">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Queue Table -->
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <h3>📋 Pending Packages Queue</h3>
+                            <span id="queue-badge" class="badge">0 items</span>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tracking #</th>
+                                        <th>Recipient</th>
+                                        <th>Size</th>
+                                        <th>Weight</th>
+                                        <th>Cold?</th>
+                                        <th>Priority</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="queue-table-body">
+                                    <tr><td colspan="7" class="text-center">No pending packages.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Manual Intake Form -->
+                    <div class="card">
+                        <h3>➕ Intake Single Package</h3>
+                        <form id="form-intake" class="form-grid">
+                            <div class="form-group">
+                                <label>Tracking Number</label>
+                                <input type="text" id="intake-tracking" class="form-input" required placeholder="TRK-1001">
+                            </div>
+                            <div class="form-group">
+                                <label>Recipient Name</label>
+                                <input type="text" id="intake-recipient" class="form-input" required placeholder="Alice Smith">
+                            </div>
+                            <div class="form-group">
+                                <label>Size Category</label>
+                                <select id="intake-size" class="form-input">
+                                    <option value="S">Small (S)</option>
+                                    <option value="M" selected>Medium (M)</option>
+                                    <option value="L">Large (L)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Weight (kg)</label>
+                                <input type="number" id="intake-weight" class="form-input" step="0.1" value="3.5" min="0.1" max="35">
+                            </div>
+                            <div class="form-group">
+                                <label>Priority</label>
+                                <select id="intake-priority" class="form-input">
+                                    <option value="Standard">Standard</option>
+                                    <option value="Express">Express</option>
+                                    <option value="Urgent">Urgent</option>
+                                </select>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="intake-cold"> Perishable (Needs Cold Storage)
+                                </label>
+                            </div>
+                            <div class="form-group full-width">
+                                <button type="submit" class="btn btn-secondary">Enqueue Package</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Retrieval -->
+                <div id="tab-retrieve" class="tab-content">
+                    <div class="card">
+                        <h3>📤 Check-Out / Retrieve Package</h3>
+                        <p class="card-desc">Enter the Package ID or Tracking Number to dispense parcel and free up the compartment.</p>
+                        <form id="form-retrieve" class="retrieve-form">
+                            <input type="text" id="retrieve-query" class="form-input" placeholder="e.g. PKG-02 or TRK-9802" required>
+                            <button type="submit" class="btn btn-primary">Check-Out Parcel</button>
+                        </form>
+                        <div id="retrieve-result" class="alert hidden"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📦 Currently Stored Parcels</h3>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Locker</th>
+                                        <th>Pkg ID</th>
+                                        <th>Tracking #</th>
+                                        <th>Recipient</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stored-table-body">
+                                    <!-- Injected by app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: FOAI Benchmarks -->
+                <div id="tab-benchmark" class="tab-content">
+                    <div class="card">
+                        <h3>📊 Empirical Evaluation: Pure Backtracking vs FC vs MRV</h3>
+                        <p class="card-desc">Comparative analysis of nodes explored, backtracks, and execution latency across varying problem sizes (N).</p>
+                        
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>N (Pkgs)</th>
+                                        <th>Pure Nodes</th>
+                                        <th>Pure BT Time</th>
+                                        <th>FC Nodes</th>
+                                        <th>FC Time</th>
+                                        <th>MRV+LCV Nodes</th>
+                                        <th>MRV+LCV Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="benchmark-table-body">
+                                    <!-- Injected by app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4">
+                            <img src="/static/benchmark_results.png" alt="Benchmark Chart" class="benchmark-img" onerror="this.style.display='none'">
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>AI-Based Smart Package Management System | FOAI Final Project</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
